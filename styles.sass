@@ -1,0 +1,43 @@
+body
+  margin: 0
+  font-family: sans-serif
+  font-size: 16px
+
+button, select
+  font: inherit
+  color: inherit
+
+button
+  padding: .3rem 12px
+  cursor: pointer
+  background-color: #DDD
+  border: 1px solid #AAA
+  border-radius: 3px
+  opacity: .8
+
+  &:hover
+    opacity: 1
+    border-color: #000
+
+  &[disabled]
+    opacity: .3
+    cursor: not-allowed
+
+  &.active
+    background-color: #0074D9
+    border-color: #0074D9
+    color: white
+
+.controls
+  padding: 6px
+  text-align: center
+
+  > *
+    margin: .5rem
+
+.canvas-container
+  margin: 1rem auto
+  border-radius: 1rem
+  box-shadow: 6px 6px 36px #0003
+  overflow: hidden
+  border: 1px solid #DDD
