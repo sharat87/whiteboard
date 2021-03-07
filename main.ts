@@ -1,33 +1,47 @@
 import m from "mithril"
 import { fabric } from "fabric"
 
+const isDev = process.NODE_ENV !== "production"
 window.addEventListener("load", main)
 
 const COLORS = {
 	// Colors from <https://clrs.cc/>.
-	"Navy":    "#001F3F",
-	"Blue":    "#0074D9",
-	"Aqua":    "#7FDBFF",
-	"Teal":    "#39CCCC",
-	"Olive":   "#3D9970",
-	"Green":   "#2ECC40",
-	"Lime":    "#01FF70",
-	"Yellow":  "#FFDC00",
-	"Orange":  "#FF851B",
-	"Red":     "#FF4136",
-	"Maroon":  "#85144B",
-	"Fuchsia": "#F012BE",
-	"Purple":  "#B10DC9",
-	"Black":   "#111111",
-	"Gray":    "#AAAAAA",
-	"Silver":  "#DDDDDD",
+	Navy:    "#001F3F",
+	Blue:    "#0074D9",
+	Aqua:    "#7FDBFF",
+	Teal:    "#39CCCC",
+	Olive:   "#3D9970",
+	Green:   "#2ECC40",
+	Lime:    "#01FF70",
+	Yellow:  "#FFDC00",
+	Orange:  "#FF851B",
+	Red:     "#FF4136",
+	Maroon:  "#85144B",
+	Fuchsia: "#F012BE",
+	Purple:  "#B10DC9",
+	Black:   "#111111",
+	Gray:    "#AAAAAA",
+	Silver:  "#DDDDDD",
 }
 
 function main() {
 	m.mount(document.getElementById("root") as Element, RootView)
 }
 
-const Tools = {
+interface SimpleTool {
+	name: "pencil" | "select"
+}
+
+interface ShapeTool {
+	name: "shape"
+	shape: "Rect" | "Ellipse"
+	create: () => any
+	update: (s: any, w: any, h: any) => void
+}
+
+type Tool = SimpleTool | ShapeTool
+
+const Tools: Record<string, Tool> = {
 	Pencil: {
 		name: "pencil",
 	},
@@ -63,6 +77,7 @@ class Model {
 	undoHistory: any[]
 	undoPosition: number
 	tool: any
+	private _strokeColor: string
 	fillColor: string
 
 	constructor() {
@@ -75,7 +90,19 @@ class Model {
 		this.undoPosition = 0
 
 		this.tool = Tools.Pencil
-		this.fillColor = "#CCCCCC"
+		this.strokeColor = COLORS.Black
+		this.fillColor = COLORS.Aqua
+	}
+
+	get strokeColor() {
+		return this._strokeColor
+	}
+
+	set strokeColor(value: string) {
+		this._strokeColor = value
+		if (this.canvas != null) {
+			this.canvas.freeDrawingBrush.color = value
+		}
 	}
 }
 
@@ -88,7 +115,7 @@ function RootView() {
 		return [
 			model.canvas != null && m(ControlPanel, { model }),
 			m(FabricCanvas, { model }),
-			m(".controls", [
+			m(".bottom.controls", [
 				m(
 					"button",
 					{
@@ -98,6 +125,7 @@ function RootView() {
 					},
 					m.trust("&darr; Extend &darr;"),
 				),
+				m("a", { href: "https://github.com/sharat87/whiteboard", target: "_blank" }, "GitHub"),
 			]),
 			// JSON view of model: m("pre", JSON.stringify({ ...model, canvas: null }, null, 4)),
 		]
@@ -171,14 +199,29 @@ function ControlPanel() {
 				},
 				"Redo",
 			),
+			isDev && m(
+				"button",
+				{
+					onclick() {
+					},
+				},
+				[
+					m(
+						"svg",
+						{ height: "1rem", width: "1rem", style: { verticalAlign: "text-bottom" } },
+						m("circle", { cx: "50%", cy: "50%", r: "40%", fill: model.strokeColor, stroke: "none" }),
+					),
+					" Stroke",
+				],
+			),
 			m("label", [
 				m("span.title", "Stroke"),
 				m(
 					"select",
 					{
-						value: model.canvas.freeDrawingBrush.color,
+						value: model.strokeColor,
 						onchange(event: any) {
-							model.canvas.freeDrawingBrush.color = event.target.value
+							model.strokeColor = event.target.value
 						},
 					},
 					Object.entries(COLORS).map(([name, value]) => m("option", { value }, name)),
@@ -218,9 +261,6 @@ function FabricCanvas() {
 		canvas.setWidth(model.initialWidth)
 		canvas.setHeight(model.initialHeight)
 
-		canvas.freeDrawingBrush.width = 3
-		canvas.freeDrawingBrush.color = COLORS.Black
-
 		canvas.on("path:created", (event: any) => onCanvasEvent(model, "path:created", event))
 		// Undo for more events: canvas.on("object:modified", (event) => onCanvasEvent(model, "object:modified", event))
 
@@ -243,7 +283,7 @@ function FabricCanvas() {
 			shape.set("left", x)
 			shape.set("top", y)
 			shape.set("fill", model.fillColor)
-			shape.set("stroke", model.canvas.freeDrawingBrush.color)
+			shape.set("stroke", model.strokeColor)
 
 			canvas.add(shape)
 			canvas.setActiveObject(shape)
@@ -289,6 +329,9 @@ function FabricCanvas() {
 
 	function view(vnode: m.VnodeDOM<Attrs>): m.Children {
 		const { model } = vnode.attrs
+		if (model.canvas != null) {
+			model.canvas.freeDrawingBrush.width = 3
+		}
 		if (model.canvas != null) {
 			model.canvas.isDrawingMode = model.tool.name === "pencil"
 		}
