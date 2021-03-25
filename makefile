@@ -3,6 +3,7 @@ serve:
 
 build:
 	npx parcel build --no-cache --no-source-maps --dist-dir public_dist index.html
+	cp CNAME public_dist
 
 lint:
 	npx tsc --noEmit --project . && npx eslint --report-unused-disable-directives main.ts
